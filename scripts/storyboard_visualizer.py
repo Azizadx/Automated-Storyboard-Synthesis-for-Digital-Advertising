@@ -1,11 +1,10 @@
 from typing import List
-
 from PIL import Image
 
 class StoryBoard:
 
     @staticmethod
-    def combine_images_horizontally(images, separation_space=100, vertical_padding=200, background_color=(255, 255, 255)):
+    def combine_images_horizontally(images: List[Image.Image], separation_space=100, vertical_padding=200, background_color=(255, 255, 255)):
         """
         Combines multiple images into a new image, displayed horizontally on a larger background.
         Images are centered horizontally within the background and have vertical padding.
@@ -16,7 +15,6 @@ class StoryBoard:
         :param background_color: Background color of the new image as an RGB tuple.
         :return: Combined image.
         """
-        # images = [Image.open(path) for path in image_paths]
         widths, heights = zip(*(i.size for i in images))
 
         # Calculate total width and max height for the images, considering separation space
@@ -42,7 +40,10 @@ class StoryBoard:
         return background
 
 if __name__ == "__main__":
-    image = StoryBoard.combine_images_horizontally(['./images/01d8fa51-ca7b-499d-9938-c13f3b496439.png',
-                                            'images/48e6f2e6-b292-4cae-81aa-b0362cc803f1.png',
-                                            'images/d7c83396-f43f-4d61-bdf4-76db405bf2ef.png'])
+    # Load the images before passing them to combine_images_horizontally
+    images = [Image.open('./resized_images/01d8fa51-ca7b-499d-9938-c13f3b496439.png'),
+              Image.open('./resized_images/0c29fdce-588c-4e2c-930a-07d9c3216e1d.png'),
+              Image.open('./resized_images/9ec00576-2a1e-437e-9f13-355b7cfb4a14.png')]
+
+    image = StoryBoard.combine_images_horizontally(images)
     image.show()
