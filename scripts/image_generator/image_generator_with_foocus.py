@@ -8,7 +8,7 @@ from typing import Literal, Optional, Tuple
 from urllib.parse import urlparse
 from pydantic import HttpUrl
 
-import replicate  # Assuming this is a custom module in your project
+import replicate
 
 # Configurations
 os.environ["REPLICATE_API_TOKEN"] = "r8_H9QNHzRFhByXizFAkbwHYUgLaAREq5C2uor8H"
