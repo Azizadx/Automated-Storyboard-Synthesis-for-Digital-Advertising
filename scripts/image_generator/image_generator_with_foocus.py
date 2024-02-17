@@ -1,17 +1,15 @@
-import os
-import requests
-from PIL import Image
-from io import BytesIO
-import base64
-import logging
 from typing import Literal, Optional, Tuple
-from urllib.parse import urlparse
-from pydantic import HttpUrl
+import logging
+import base64
+from io import BytesIO
+import os
 
 import replicate
-import os
+from PIL import Image
+import requests
+from pydantic import HttpUrl
 
-# Configurations
+## Configurations
 os.getenv("REPLICATE_API_TOKEN")
 logging.basicConfig(level=logging.INFO)
 
@@ -19,24 +17,17 @@ class ImageGenerater:
     def __init__(self, asset_suggestions: dict) -> None:
         self.asset_suggestions = asset_suggestions
 
-    def generate_images(self, store_location: str = '../images') -> dict:
+    def generate_images(self, store_location: str ='./images') -> dict:
         generated_images = {}
         for frame, elements in self.asset_suggestions.items():
             if frame.startswith('frame'):
                 generated_images[frame] = []
                 for type, description in elements.items():
-                    # Check if description is a valid URL
-                    if not urlparse(description).scheme:
-                        # If it's not a valid URL, handle it appropriately (e.g., provide a default image)
-                        # For now, let's log a warning and skip this image
-                        logging.warning(f"Invalid URL provided for {frame}_{type}: {description}. Skipping...")
-                        continue
-
-                    # If it's a valid URL, proceed with downloading the image
-                    downloaded_image = ImageGenerater.download_image(description, store_location, f"{frame}_{type.replace(' ', '_')}.png")
+                    downloaded_image = ImageGenerater.download_image(ImageGenerater.generate_image(prompt=description)[0], store_location)
                     generated_images[frame].append((type, *downloaded_image))
 
         return generated_images
+
 
     @staticmethod
     def generate_image(prompt: str, performance_selection: Literal['Speed', 'Quality', 'Extreme Speed'] = "Extreme Speed",
@@ -71,59 +62,45 @@ class ImageGenerater:
     @staticmethod
     def decode_image(base64_data: str) -> Optional[Image.Image]:
         """
-        Converts a base64 image into pillow image object.
+        Converts a base64 image into pillow iamge object.
 
         :param base64_data: Textual base64 image data.
         :return: Converted pillow image.
         """
         image_data = base64.b64decode(base64_data)
         image_stream = BytesIO(image_data)
-        return Image.open(image_stream)
+        return(Image.open(image_stream))
 
     @staticmethod
-    def download_image(url: str, save_path: str, image_name: str) -> Tuple[str, str]:
+    def download_image(url: HttpUrl, save_path: str) -> Tuple[str, str]:
         """
-        Downloads an image from the provided URL and saves it to the specified location with the given image name.
+        Downloads provided url data to given location.
 
-        :param url: HTTP URL of the image.
-        :param save_path: Folder location to save the image.
-        :param image_name: Name to save the image with.
-        :return: Tuple containing the URL of the image and the path where it is saved.
+        :param url: HTTP Url of the file.
+        :param save_path: Folder location to save the data.
+        :return: Tuple of the url and save location.
         """
+
         try:
             response = requests.get(url)
-            response.raise_for_status()  # Raise HTTPError for non-200 status codes
 
-            # Get the file extension from the URL
-            image_extension = os.path.splitext(url)[-1]
-
-            # Ensure the save path exists, create if not
-            os.makedirs(save_path, exist_ok=True)
-
-            # Check if the image name already exists in the save path
-            existing_files = [f for f in os.listdir(save_path) if f.startswith(image_name)]
-            if existing_files:
-                # Append a suffix to the image name to make it unique
-                image_name = f"{image_name}_{len(existing_files) + 1}"
-
-            # Construct the file path with the image name and extension
-            save_file_path = os.path.join(save_path, f"{image_name}{image_extension}")
-
-            # Save the image
-            with open(save_file_path, 'wb') as f:
-                f.write(response.content)
-
-            logging.info(f"Image saved to {save_file_path}")
-            return save_file_path
-
-        except requests.RequestException as e:
-            raise RuntimeError(f"Failed to download image from {url}: {e}") from e
-
-        except OSError as e:
-            raise RuntimeError(f"Error occurred while saving the image: {e}") from e
+            if response.status_code == 200:
+                save_path = os.path.join(save_path, os.path.basename(url))
+                image = Image.open(BytesIO(response.content))
+                image.save(save_path)
+                logging.info(f"Image saved to {save_path}")
+                return (url, save_path)
+            else:
+                raise RuntimeError(f"Failed to download image. Status code: {response.status_code}") from None
+        except Exception as e:
+            raise RuntimeError(f"An error occurred: {e}") from e
 
 
 if __name__ == "__main__":
+    # output = ImageGenerater.generate_image("a big star being born")
+    # print(output)
+    # image = ImageGenerater.download_image('https://replicate.delivery/pbxt/a4uwoBueQhS5cCdF6VeUJfpvuslvXQBA9NRQcE3dFRR6D5skA/d7c83396-f43f-4d61-bdf4-76db405bf2ef.png', './images')
+    # image.show()
     a = {
     "frame_1": {
         "Animated Element": "A high-resolution 3D Coca-Cola bottle center-screen, bubbles rising to the top, transitioning into a sleek DJ turntable with a vinyl record that has the Coke Studio logo.",
@@ -134,7 +111,5 @@ if __name__ == "__main__":
     "explanation": "This variation emphasizes the joy and interactivity of music mixing, with each frame building on the last to create a crescendo of engagement. The 3D bottle-to-turntable animation captures attention, the interactive beat mixer sustains engagement, and the vibrant animations encourage sharing, aligning with the campaign's objectives of engagement and message recall."
     }
     test = ImageGenerater(a)
-    test.generate_images(a)
-    # test.download_image(url='https://replicate.delivery/pbxt/wql2Dj7yR16bF5RYzKPnwWsLigfzeVneAAkk8BfjXRHbTAeSC/8255c049-117e-49e4-a47b-983fe266c202.png',
-    # save_path='../storedboard_assets/frame1/',
-    # image_name='background_with_small_aspect_ratio')
+
+    test.generate_images()

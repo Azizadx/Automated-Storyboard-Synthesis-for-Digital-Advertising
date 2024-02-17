@@ -5,7 +5,6 @@ from collections import defaultdict
 
 from PIL import Image
 from pprint import pprint
-import logging
 
 
 VERTICAL_POSITIONING = {'Logo': [1], 'CTA Button': [1, 2, 3], 'Icon': [1, 2, 3], 'Product Image': [2],
@@ -48,17 +47,11 @@ class ImageComposer:
         for frame in self.frames:
             # Separate Background
             placement_items = []
-            background_index = None  # Initialize background_index variable
             for index, item in enumerate(frame):
                 if item[0] == "Background":
                     background_index = index
                     continue
                 placement_items.append(item)
-
-            if background_index is None:
-                # Handle the scenario where no background element is found
-                logging.warning("No background element found in the frame. Skipping...")
-                continue
 
             background = frame[background_index]
 
@@ -68,6 +61,7 @@ class ImageComposer:
             placement_values = [(x[2], *list(y.values())) for x, y in zip(placement_items, adjusted_positions)]
             # Construct Frame
             self.generated_frames.append(self.create_combined_image(background[2], placement_values))
+
     @staticmethod
     def compute_positions(elements: List[categories]) -> List[AlignmentPositions]:
         possible_positions = []
