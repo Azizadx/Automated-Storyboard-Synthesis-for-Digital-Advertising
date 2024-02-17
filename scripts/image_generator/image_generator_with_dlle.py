@@ -10,7 +10,7 @@ from typing import Tuple
 from io import BytesIO
 
 class ImageGenerate:
-    def __init__(self):
+    def __init__(self)-> None:
         # Load environment variables from .env file
         load_dotenv()
         # Get the OpenAI API key from the environment
@@ -20,9 +20,20 @@ class ImageGenerate:
             raise ValueError("API key is not set. Make sure it is available in your .env file.")
         # Initialize OpenAI client
         self.client = OpenAI(api_key=self.api_key)
+    @staticmethod
+    def generate_images(asset_suggestions: dict, store_location: str ='./images') -> dict:
+        generated_images = {}
+        for frame, elements in asset_suggestions.items():
+            if frame.startswith('frame'):
+                generated_images[frame] = []
+                for type, description in elements.items():
+                    downloaded_image = ImageGenerate.download_image(ImageGenerate.generate_image(prompt=description), store_location,type)
+                    generated_images[frame].append((type, *downloaded_image))
+
+        return generated_images
 
     @staticmethod
-    def generate_images(prompt: str) -> str:
+    def generate_image(prompt: str) -> str:
         try:
             client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
             response = client.images.generate(
