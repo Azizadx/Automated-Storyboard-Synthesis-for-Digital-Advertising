@@ -9,22 +9,31 @@ from urllib.parse import urlparse
 from pydantic import HttpUrl
 
 import replicate
+import os
 
 # Configurations
-os.environ["REPLICATE_API_TOKEN"] = "r8_H9QNHzRFhByXizFAkbwHYUgLaAREq5C2uor8H"
+os.getenv("REPLICATE_API_TOKEN")
 logging.basicConfig(level=logging.INFO)
 
 class ImageGenerater:
     def __init__(self, asset_suggestions: dict) -> None:
         self.asset_suggestions = asset_suggestions
 
-    def generate_images(self, store_location: str = './images') -> dict:
+    def generate_images(self, store_location: str = '../images') -> dict:
         generated_images = {}
         for frame, elements in self.asset_suggestions.items():
             if frame.startswith('frame'):
                 generated_images[frame] = []
                 for type, description in elements.items():
-                    downloaded_image = ImageGenerater.download_image(HttpUrl(description), store_location, f"{frame}_{type.replace(' ', '_')}.png")
+                    # Check if description is a valid URL
+                    if not urlparse(description).scheme:
+                        # If it's not a valid URL, handle it appropriately (e.g., provide a default image)
+                        # For now, let's log a warning and skip this image
+                        logging.warning(f"Invalid URL provided for {frame}_{type}: {description}. Skipping...")
+                        continue
+
+                    # If it's a valid URL, proceed with downloading the image
+                    downloaded_image = ImageGenerater.download_image(description, store_location, f"{frame}_{type.replace(' ', '_')}.png")
                     generated_images[frame].append((type, *downloaded_image))
 
         return generated_images
@@ -114,18 +123,18 @@ class ImageGenerater:
             raise RuntimeError(f"Error occurred while saving the image: {e}") from e
 
 
-# if __name__ == "__main__":
-#     a = {
-#     "frame_1": {
-#         "Animated Element": "A high-resolution 3D Coca-Cola bottle center-screen, bubbles rising to the top, transitioning into a sleek DJ turntable with a vinyl record that has the Coke Studio logo.",
-#     },
-#     "frame_2": {
-#         "CTA Text": "'Mix Your Beat' in bold, playful font pulsating to the rhythm of a subtle background beat, positioned at the bottom of the screen."
-#     },
-#     "explanation": "This variation emphasizes the joy and interactivity of music mixing, with each frame building on the last to create a crescendo of engagement. The 3D bottle-to-turntable animation captures attention, the interactive beat mixer sustains engagement, and the vibrant animations encourage sharing, aligning with the campaign's objectives of engagement and message recall."
-#     }
-#     test = ImageGenerater(a)
-#     # test.generate_images()
-#     test.download_image(url='https://replicate.delivery/pbxt/wql2Dj7yR16bF5RYzKPnwWsLigfzeVneAAkk8BfjXRHbTAeSC/8255c049-117e-49e4-a47b-983fe266c202.png',
-#     save_path='../storedboard_assets/frame1/',
-#     image_name='background_with_small_aspect_ratio')
+if __name__ == "__main__":
+    a = {
+    "frame_1": {
+        "Animated Element": "A high-resolution 3D Coca-Cola bottle center-screen, bubbles rising to the top, transitioning into a sleek DJ turntable with a vinyl record that has the Coke Studio logo.",
+    },
+    "frame_2": {
+        "CTA Text": "'Mix Your Beat' in bold, playful font pulsating to the rhythm of a subtle background beat, positioned at the bottom of the screen."
+    },
+    "explanation": "This variation emphasizes the joy and interactivity of music mixing, with each frame building on the last to create a crescendo of engagement. The 3D bottle-to-turntable animation captures attention, the interactive beat mixer sustains engagement, and the vibrant animations encourage sharing, aligning with the campaign's objectives of engagement and message recall."
+    }
+    test = ImageGenerater(a)
+    test.generate_images(a)
+    # test.download_image(url='https://replicate.delivery/pbxt/wql2Dj7yR16bF5RYzKPnwWsLigfzeVneAAkk8BfjXRHbTAeSC/8255c049-117e-49e4-a47b-983fe266c202.png',
+    # save_path='../storedboard_assets/frame1/',
+    # image_name='background_with_small_aspect_ratio')
